@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html class="light" lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>NewsCheck - 분석 중</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600&family=Noto+Sans+KR:wght@100;300;400;500;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#6366f1",
+                        "bg-light": "#f8fafc",
+                        "bg-dark": "#020617",
+                    },
+                    fontFamily: {
+                        sans: ["Manrope", "Noto Sans KR", "sans-serif"],
+                        mono: ["JetBrains Mono", "monospace"],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float-slow': 'float 8s ease-in-out infinite',
+                        'blink': 'blink 1s step-end infinite',
+                        'slide-left': 'slideLeft 0.6s ease-out forwards',
+                        'fade-in-right': 'fadeInRight 0.6s ease-out forwards',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        blink: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0' },
+                        },
+                        slideLeft: {
+                            '0%': { transform: 'translateX(0)', opacity: '1' },
+                            '100%': { transform: 'translateX(-5%)', opacity: '1' },
+                        },
+                        fadeInRight: {
+                            '0%': { transform: 'translateX(20px)', opacity: '0' },
+                            '100%': { transform: 'translateX(0)', opacity: '1' },
+                        }
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        .glass-tag {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            font-size: 10px;
+            font-weight: 500;
+            color: #475569;
+            padding: 6px 12px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .loader-ring {
+            border: 1px solid transparent;
+            border-top-color: #6366f1;
+            border-right-color: rgba(99, 102, 241, 0.2);
+            border-radius: 50%;
+        }
+
+        .loader-ring-reverse {
+            border: 1px solid transparent;
+            border-bottom-color: rgba(99, 102, 241, 0.4);
+            border-left-color: rgba(99, 102, 241, 0.1);
+            border-radius: 50%;
+        }
+
+        .step-active {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.5);
+            padding: 8px 24px;
+            border-radius: 9999px;
+            backdrop-filter: blur(4px);
+            border: 1px solid #f1f5f9;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .step-pending {
+            opacity: 0.4;
+        }
+
+        .step-done {
+            opacity: 0.7;
+        }
+
+        /* Split screen layout */
+        .split-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            transition: all 0.6s ease-out;
+        }
+
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.6s ease-out;
+        }
+
+        .left-panel.split-mode {
+            flex: 0 0 50%;
+            animation: slide-left 0.6s ease-out forwards;
+        }
+
+        .right-panel {
+            flex: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: all 0.6s ease-out;
+        }
+
+        .right-panel.split-mode {
+            flex: 0 0 50%;
+            opacity: 1;
+            animation: fade-in-right 0.6s ease-out forwards;
+        }
+
+        /* Typing cursor */
+        .typing-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.2em;
+            background: #6366f1;
+            margin-left: 2px;
+            vertical-align: text-bottom;
+            animation: blink 1s step-end infinite;
+        }
+
+        /* Reasoning text styling */
+        .reasoning-container {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            color: #475569;
+            padding: 2rem;
+            height: 100%;
+            overflow-y: auto;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.03) 0%, rgba(139, 92, 246, 0.03) 100%);
+        }
+
+        .reasoning-line {
+            opacity: 0;
+            transform: translateY(5px);
+            animation: reasoningAppear 0.3s ease-out forwards;
+        }
+
+        @keyframes reasoningAppear {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .reasoning-highlight {
+            color: #6366f1;
+            font-weight: 500;
+        }
+
+        .reasoning-dim {
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body
+    class="relative flex min-h-screen w-full flex-col bg-slate-50 text-slate-800 font-sans overflow-hidden antialiased">
+    <div class="fixed inset-0 pointer-events-none overflow-hidden">
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[100px]">
+        </div>
+    </div>
+
+    <div class="split-container" id="split-container">
+        <!-- Left Panel: Original Loading UI -->
+        <div class="left-panel" id="left-panel">
+            <main
+                class="flex-1 flex flex-col items-center justify-center relative z-10 w-full max-w-xl mx-auto h-screen p-6">
+                <div class="relative w-[280px] h-[280px] flex items-center justify-center mb-12">
+                    <div class="relative z-20 flex items-center justify-center">
+                        <div class="absolute w-2.5 h-2.5 bg-indigo-500 rounded-full shadow-lg"></div>
+                        <div class="absolute w-2.5 h-2.5 bg-indigo-500 rounded-full animate-ping opacity-50"></div>
+                    </div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-28 h-28 loader-ring animate-spin opacity-80" style="animation-duration: 3s;">
+                        </div>
+                    </div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-40 h-40 loader-ring-reverse animate-spin opacity-60"
+                            style="animation-duration: 5s; animation-direction: reverse;"></div>
+                    </div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-52 h-52 border border-slate-200 rounded-full opacity-60"></div>
+                    </div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div
+                            class="w-[280px] h-[280px] border border-slate-100 rounded-full opacity-30 animate-pulse-slow">
+                        </div>
+                    </div>
+                    <div id="floating-tags" class="absolute inset-0"></div>
+                </div>
+
+                <div class="flex flex-col items-center text-center space-y-8 z-20 max-w-lg w-full">
+                    <div class="space-y-3">
+                        <h1 class="text-2xl md:text-3xl font-light tracking-tight text-slate-900">
+                            AI 타임라인 <span class="font-normal text-indigo-500">생성 중</span>
+                        </h1>
+                        <p class="text-sm font-light text-slate-500 leading-relaxed max-w-sm mx-auto">
+                            URL의 정보를 분석하여 사건의 선후 관계를 정리하고 핵심 기점들을 추출하고 있습니다.
+                        </p>
+                    </div>
+
+                    <div id="progress-steps" class="w-full flex flex-col gap-2.5 items-center pt-2">
+                        <div id="step-scraping" class="flex items-center gap-4 text-slate-800 step-active">
+                            <div class="w-4 flex justify-center">
+                                <span
+                                    class="material-symbols-outlined text-lg text-indigo-500 animate-spin">progress_activity</span>
+                            </div>
+                            <span class="text-sm font-medium tracking-wide">기사 콘텐츠 수집 중...</span>
+                        </div>
+                        <div id="step-claims" class="flex items-center gap-3 text-slate-400 step-pending">
+                            <div class="w-4 flex justify-center">
+                                <div class="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                            </div>
+                            <span class="text-xs font-light tracking-wide">핵심 주장 추출</span>
+                        </div>
+                        <div id="step-evidence" class="flex items-center gap-3 text-slate-400 step-pending">
+                            <div class="w-4 flex justify-center">
+                                <div class="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                            </div>
+                            <span class="text-xs font-light tracking-wide">관련 기사 검색</span>
+                        </div>
+                        <div id="step-synthesis" class="flex items-center gap-3 text-slate-400 step-pending">
+                            <div class="w-4 flex justify-center">
+                                <div class="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                            </div>
+                            <span class="text-xs font-light tracking-wide">타임라인 생성</span>
+                        </div>
+                        <div id="step-saving" class="flex items-center gap-3 text-slate-400 step-pending">
+                            <div class="w-4 flex justify-center">
+                                <div class="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                            </div>
+                            <span class="text-xs font-light tracking-wide">결과 저장</span>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Right Panel: LLM Reasoning Display -->
+        <div class="right-panel" id="right-panel">
+            <div class="h-full flex flex-col border-l border-slate-200">
+                <div class="px-6 py-4 border-b border-slate-100 bg-white/50 backdrop-blur-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-indigo-500 text-xl">psychology</span>
+                        <h2 class="text-sm font-semibold text-slate-700">AI 추론 과정</h2>
+                    </div>
+                </div>
+                <div class="reasoning-container" id="reasoning-container">
+                    <div id="reasoning-content"></div>
+                    <span class="typing-cursor" id="typing-cursor"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="fixed bottom-4 right-6 z-10 hidden md:block opacity-40">
+        <div class="flex items-center gap-1 text-[9px] text-slate-400 tracking-widest uppercase">
+            <span class="material-symbols-outlined text-[10px]">verified_user</span>
+            <span>NewsCheck AI Engine</span>
+        </div>
+    </footer>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const analysisUrl = urlParams.get('url');
+
+        if (!analysisUrl) {
+            window.location.href = '/';
+        }
+
+        const floatingTags = document.getElementById('floating-tags');
+        const leftPanel = document.getElementById('left-panel');
+        const rightPanel = document.getElementById('right-panel');
+        const reasoningContent = document.getElementById('reasoning-content');
+        const typingCursor = document.getElementById('typing-cursor');
+        const reasoningContainer = document.getElementById('reasoning-container');
+
+        // Track used positions and active tags
+        let usedPositions = new Set();
+        let activeTagsCount = 0;
+        const MAX_TAGS = 5;
+
+        // Fixed positions with unique zones to prevent overlap
+        const tagPositions = [
+            { id: 0, top: '8%', left: '5%' },
+            { id: 1, top: '5%', right: '8%' },
+            { id: 2, top: '35%', left: '2%' },
+            { id: 3, top: '40%', right: '3%' },
+            { id: 4, bottom: '30%', left: '8%' },
+            { id: 5, bottom: '25%', right: '5%' },
+            { id: 6, bottom: '8%', left: '15%' },
+            { id: 7, bottom: '5%', right: '12%' },
+        ];
+
+        function getAvailablePosition() {
+            for (let pos of tagPositions) {
+                if (!usedPositions.has(pos.id)) {
+                    usedPositions.add(pos.id);
+                    return pos;
+                }
+            }
+            // If all positions used, remove oldest and reuse
+            return null;
+        }
+
+        function releasePosition(posId) {
+            usedPositions.delete(posId);
+        }
+
+        function addFloatingTag(text) {
+            // Filter internal debug tags
+            if (text.includes('LLM') || text.includes('SCRAPING') || text.includes('TAVILY') ||
+                text.includes('CLAIMS') || text.includes('EVIDENCE') || text.includes('PERSIST') ||
+                text.includes('PROCESSING')) {
+                return;
+            }
+
+            // Limit active tags
+            if (activeTagsCount >= MAX_TAGS) {
+                const oldest = floatingTags.firstChild;
+                if (oldest && oldest.dataset.posId) {
+                    releasePosition(parseInt(oldest.dataset.posId));
+                }
+                if (oldest) {
+                    oldest.style.opacity = '0';
+                    oldest.style.transform = 'scale(0.8)';
+                    setTimeout(() => {
+                        oldest.remove();
+                        activeTagsCount--;
+                    }, 300);
+                }
+            }
+
+            const pos = getAvailablePosition();
+            if (!pos) return;
+
+            const tag = document.createElement('div');
+            tag.className = 'absolute glass-tag flex items-center gap-2 transition-all duration-500';
+            tag.dataset.posId = pos.id;
+            tag.style.animation = 'float-slow 8s ease-in-out infinite';
+            tag.style.animationDelay = (pos.id * 0.5) + 's';
+            tag.style.opacity = '0';
+            tag.style.transform = 'scale(0.8)';
+
+            // Apply position
+            if (pos.top) tag.style.top = pos.top;
+            if (pos.bottom) tag.style.bottom = pos.bottom;
+            if (pos.left) tag.style.left = pos.left;
+            if (pos.right) tag.style.right = pos.right;
+
+            const colors = ['#10b981', '#0ea5e9', '#f59e0b', '#8b5cf6', '#f43f5e'];
+            const color = colors[pos.id % colors.length];
+
+            const dot = document.createElement('span');
+            dot.style.cssText = 'width: 4px; height: 4px; border-radius: 50%; background: ' + color;
+
+            const textSpan = document.createElement('span');
+            textSpan.textContent = text.length > 18 ? text.substring(0, 18) + '...' : text;
+
+            tag.appendChild(dot);
+            tag.appendChild(textSpan);
+            floatingTags.appendChild(tag);
+            activeTagsCount++;
+
+            // Animate in
+            setTimeout(() => {
+                tag.style.opacity = '1';
+                tag.style.transform = 'scale(1)';
+            }, 50);
+        }
+
+        function updateStep(stepId, status) {
+            const step = document.getElementById(stepId);
+            if (!step) return;
+
+            step.className = 'flex items-center gap-4 text-slate-800';
+            const iconDiv = step.querySelector('.w-4');
+
+            if (status === 'active') {
+                step.classList.add('step-active');
+                if (iconDiv) iconDiv.innerHTML = '<span class="material-symbols-outlined text-lg text-indigo-500 animate-spin">progress_activity</span>';
+            } else if (status === 'done') {
+                step.classList.add('step-done');
+                if (iconDiv) iconDiv.innerHTML = '<span class="material-symbols-outlined text-lg text-emerald-500">check_circle</span>';
+            } else if (status === 'error') {
+                step.classList.add('step-done');
+                if (iconDiv) iconDiv.innerHTML = '<span class="material-symbols-outlined text-lg text-red-500">error</span>';
+            }
+        }
+
+        function addSource(title, url) {
+            addFloatingTag(title);
+        }
+
+        // Split screen mode activation
+        let isSplitMode = false;
+
+        function activateSplitMode() {
+            if (isSplitMode) return;
+            isSplitMode = true;
+            leftPanel.classList.add('split-mode');
+            rightPanel.classList.add('split-mode');
+        }
+
+        // Typing effect for reasoning
+        let currentReasoningText = '';
+        let reasoningLines = [];
+
+        function addReasoningText(text, type = 'normal') {
+            if (!isSplitMode) {
+                activateSplitMode();
+            }
+
+            const line = document.createElement('div');
+            line.className = 'reasoning-line mb-2';
+
+            // Format based on type
+            if (type === 'step') {
+                line.innerHTML = `<span class="reasoning-highlight">▶ ${text}</span>`;
+            } else if (type === 'thinking') {
+                line.innerHTML = `<span class="reasoning-dim">  └─ ${text}</span>`;
+            } else {
+                line.textContent = text;
+            }
+
+            reasoningContent.appendChild(line);
+
+            // Auto scroll to bottom
+            reasoningContainer.scrollTop = reasoningContainer.scrollHeight;
+        }
+
+        function typeReasoningChar(text, index, callback) {
+            if (index < text.length) {
+                const span = document.createElement('span');
+                span.textContent = text[index];
+                span.className = 'reasoning-line';
+                span.style.display = 'inline';
+                reasoningContent.insertBefore(span, typingCursor);
+                reasoningContainer.scrollTop = reasoningContainer.scrollHeight;
+
+                setTimeout(() => typeReasoningChar(text, index + 1, callback), 20 + Math.random() * 30);
+            } else {
+                if (callback) callback();
+            }
+        }
+
+        // Simulated reasoning messages for each step
+        const stepReasoningMessages = {
+            'step-claims': [
+                { type: 'step', text: '핵심 주장 추출 시작' },
+                { type: 'thinking', text: '기사 본문에서 검증 가능한 사실적 주장을 식별합니다...' },
+                { type: 'thinking', text: '주관적 의견과 객관적 사실을 구분하고 있습니다...' },
+            ],
+            'step-evidence': [
+                { type: 'step', text: '관련 증거 검색' },
+                { type: 'thinking', text: '각 주장에 대한 교차 검증 자료를 수집합니다...' },
+                { type: 'thinking', text: '신뢰할 수 있는 출처에서 근거를 찾고 있습니다...' },
+            ],
+            'step-synthesis': [
+                { type: 'step', text: '타임라인 합성' },
+                { type: 'thinking', text: '사건의 시간순 흐름을 재구성합니다...' },
+                { type: 'thinking', text: '주요 전환점과 핵심 사건을 정리하고 있습니다...' },
+            ],
+            'step-saving': [
+                { type: 'step', text: '결과 저장' },
+                { type: 'thinking', text: '분석 결과를 구조화하여 저장합니다...' },
+            ],
+        };
+
+        function showStepReasoning(stepId) {
+            const messages = stepReasoningMessages[stepId];
+            if (!messages) return;
+
+            let delay = 0;
+            messages.forEach((msg, idx) => {
+                setTimeout(() => {
+                    addReasoningText(msg.text, msg.type);
+                }, delay);
+                delay += 400 + Math.random() * 300;
+            });
+        }
+
+        // Start SSE connection
+        const eventSource = new EventSource('/api/analyze/stream?url=' + encodeURIComponent(analysisUrl));
+
+        eventSource.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+
+            switch (data.type) {
+                case 'step':
+                    if (data.previous) updateStep(data.previous, 'done');
+                    updateStep(data.step, 'active');
+
+                    // Activate split mode and show reasoning from step-claims onwards
+                    if (data.step === 'step-claims' || data.step === 'step-evidence' ||
+                        data.step === 'step-synthesis' || data.step === 'step-saving') {
+                        showStepReasoning(data.step);
+                    }
+                    break;
+                case 'tag':
+                    addFloatingTag(data.text);
+                    break;
+                case 'source':
+                    addSource(data.title, data.url);
+                    break;
+                case 'reasoning':
+                    // Handle streaming reasoning from backend
+                    addReasoningText(data.text, data.reasoning_type || 'thinking');
+                    break;
+                case 'complete':
+                    eventSource.close();
+                    addReasoningText('✓ 분석 완료!', 'step');
+                    setTimeout(() => {
+                        if (data.result) {
+                            sessionStorage.setItem('previewData', JSON.stringify(data.result));
+                            window.location.href = '/timeline?mode=preview';
+                        } else {
+                            window.location.href = '/timeline?id=' + data.event_id;
+                        }
+                    }, 800);
+                    break;
+                case 'error':
+                    eventSource.close();
+                    addReasoningText('✗ 오류: ' + data.message, 'step');
+                    setTimeout(() => {
+                        alert(data.message);
+                        window.location.href = '/';
+                    }, 1000);
+                    break;
+            }
+        };
+
+        eventSource.onerror = function () {
+            eventSource.close();
+            alert('분석 중 연결이 끊어졌습니다. 다시 시도해주세요.');
+            window.location.href = '/';
+        };
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html class="light" lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>NewsCheck - Event Timeline</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700;900&amp;family=Noto+Sans+KR:wght@300;400;500;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#197fe6",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111921",
+                        "card-light": "#ffffff",
+                        "card-dark": "#1e2936",
+                        "text-main-light": "#0e141b",
+                        "text-main-dark": "#e2e8f0",
+                        "text-muted-light": "#4e7397",
+                        "text-muted-dark": "#94a3b8",
+                    },
+                    fontFamily: {
+                        "display": ["Work Sans", "Noto Sans KR", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+</head>
+
+<body
+    class="relative flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark text-text-main-light dark:text-text-main-dark font-display overflow-x-hidden antialiased transition-colors duration-200">
+    <!-- Top Navigation -->
+    <header
+        class="sticky top-0 z-50 flex items-center justify-between border-b border-solid border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-background-dark/90 backdrop-blur-md px-6 lg:px-10 py-3 shadow-sm">
+        <a href="/" class="flex items-center gap-4 text-text-main-light dark:text-text-main-dark cursor-pointer group">
+            <div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+                <span class="material-symbols-outlined text-[20px]">fact_check</span>
+            </div>
+            <h2 class="text-lg font-bold leading-tight tracking-[-0.015em] group-hover:text-primary transition-colors">
+                News Timeline</h2>
+        </a>
+    </header>
+    <main class="layout-container flex h-full grow flex-col py-8 px-4 md:px-10 lg:px-20 xl:px-40">
+        <div class="flex flex-col max-w-[1200px] mx-auto w-full gap-8">
+            <!-- Page Heading & Status Dashboard -->
+            <section class="flex flex-col gap-6">
+                <!-- Title Row -->
+                <div class="flex flex-wrap justify-between items-start gap-4">
+                    <div class="flex flex-col gap-3 max-w-3xl">
+                        <div class="flex items-center gap-2" id="meta-info">
+                            <span
+                                class="px-2 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary uppercase tracking-wide">분석
+                                결과</span>
+                            <span class="text-text-muted-light dark:text-text-muted-dark text-sm"
+                                id="updated-date"></span>
+                        </div>
+                        <h1 id="event-title"
+                            class="text-3xl md:text-4xl lg:text-[40px] font-black leading-tight tracking-[-0.033em]">
+                            데이터를 불러오는 중...</h1>
+                        <p id="event-summary" class="text-text-muted-light dark:text-text-muted-dark text-lg max-w-2xl">
+                            잠시만 기다려주세요.
+                        </p>
+                    </div>
+                    <div class="flex gap-3">
+                        <button id="share-btn"
+                            class="flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-white shadow-lg shadow-primary/30 hover:bg-blue-600 transition-colors">
+                            <span class="material-symbols-outlined text-[18px]">share</span>
+                            <span>공유하기</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="stats-cards">
+                    <div
+                        class="flex flex-col gap-3 rounded-xl p-6 bg-card-light dark:bg-card-dark border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <div class="flex items-center gap-2 text-primary">
+                            <span class="material-symbols-outlined">gavel</span>
+                            <p class="text-sm font-bold uppercase tracking-wide">최종 결론</p>
+                        </div>
+                        <p id="stat-conclusion" class="text-2xl font-bold leading-tight">-</p>
+                        <p id="stat-conclusion-sub" class="text-sm text-text-muted-light dark:text-text-muted-dark">분석 중
+                        </p>
+                    </div>
+                    <div
+                        class="flex flex-col gap-3 rounded-xl p-6 bg-card-light dark:bg-card-dark border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+                        <div class="absolute right-0 top-0 h-full w-1 bg-green-500"></div>
+                        <div class="flex items-center gap-2 text-green-600 dark:text-green-400">
+                            <span class="material-symbols-outlined">verified</span>
+                            <p class="text-sm font-bold uppercase tracking-wide">근거 수준</p>
+                        </div>
+                        <p id="stat-evidence" class="text-2xl font-bold leading-tight">-</p>
+                        <p id="stat-evidence-sub" class="text-sm text-text-muted-light dark:text-text-muted-dark">확인 중
+                        </p>
+                    </div>
+                    <div
+                        class="flex flex-col gap-3 rounded-xl p-6 bg-card-light dark:bg-card-dark border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                            <span class="material-symbols-outlined">timelapse</span>
+                            <p class="text-sm font-bold uppercase tracking-wide">진행 상황</p>
+                        </div>
+                        <p id="stat-status" class="text-2xl font-bold leading-tight">-</p>
+                        <p id="stat-status-sub" class="text-sm text-text-muted-light dark:text-text-muted-dark">확인 중</p>
+                    </div>
+                </div>
+            </section>
+            <!-- Split Layout: Timeline & Claims -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 mt-6">
+                <!-- Left Column: Timeline (Span 8) -->
+                <section class="lg:col-span-8 flex flex-col gap-6">
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+                        <h2 class="text-2xl font-bold flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary">history_edu</span>
+                            사건 타임라인
+                        </h2>
+                        <div class="flex gap-2">
+                            <button
+                                class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-text-muted-light transition-colors"
+                                title="오름차순 정렬">
+                                <span class="material-symbols-outlined">arrow_upward</span>
+                            </button>
+                            <button
+                                class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-text-muted-light transition-colors"
+                                title="필터">
+                                <span class="material-symbols-outlined">filter_list</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative pl-2" id="timeline-container">
+                        <!-- Loading placeholder - will be replaced with real data -->
+                        <div class="flex flex-col items-center justify-center py-12 text-center" id="timeline-loading">
+                            <span
+                                class="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600 animate-pulse mb-4">hourglass_empty</span>
+                            <p class="text-text-muted-light dark:text-text-muted-dark">타임라인 데이터를 불러오는 중...</p>
+                        </div>
+                    </div>
+                </section>
+                <!-- Right Column: Verification (Span 4) -->
+                <aside class="lg:col-span-4 flex flex-col gap-6">
+                    <div class="sticky top-24 flex flex-col gap-6" id="claims-container">
+                        <div
+                            class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+                            <h2 class="text-xl font-bold flex items-center gap-2">
+                                <span class="material-symbols-outlined text-green-600">rule</span>
+                                쟁점 검증 (Claim Check)
+                            </h2>
+                        </div>
+                        <!-- Loading placeholder - will be replaced with real data -->
+                        <div class="flex flex-col items-center justify-center py-8 text-center" id="claims-loading">
+                            <span
+                                class="material-symbols-outlined text-3xl text-slate-300 dark:text-slate-600 animate-pulse mb-3">hourglass_empty</span>
+                            <p class="text-text-muted-light dark:text-text-muted-dark text-sm">검증 결과를 불러오는 중...</p>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </main>
+
+
+    <script>
+        const API_BASE = '/api';
+
+        // URL에서 event_id 추출
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventId = urlParams.get('id');
+
+        // 타임라인 타입별 아이콘/색상 매핑
+        const typeConfig = {
+            initial_report: { icon: 'campaign', color: 'primary', label: '최초 보도' },
+            correction: { icon: 'edit_note', color: 'slate-600', label: '정정 보도' },
+            rebuttal: { icon: 'reply', color: 'orange-500', label: '반박' },
+            official_statement: { icon: 'account_balance', color: 'blue-600', label: '공식 입장' },
+            court_ruling: { icon: 'balance', color: 'purple-600', label: '법원 판결' },
+            investigation_update: { icon: 'search', color: 'amber-600', label: '조사 업데이트' },
+            context: { icon: 'info', color: 'gray-500', label: '배경' },
+            other: { icon: 'article', color: 'gray-400', label: '기타' },
+        };
+
+        // 검증 상태 매핑
+        const verificationConfig = {
+            verified: { color: 'green', label: '사실 (True)' },
+            disputed: { color: 'red', label: '거짓 (False)' },
+            unknown: { color: 'slate', label: '판단 유보' },
+        };
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function renderTimeline(timeline) {
+            const container = document.getElementById('timeline-container');
+            if (!container) return;
+
+            // 연결선과 끝 노드 외 기존 아이템 제거하고 새로 렌더링
+            let html = '<div class="absolute left-[27px] top-4 bottom-4 w-0.5 bg-slate-200 dark:bg-slate-700"></div>';
+
+            timeline.forEach(item => {
+                const cfg = typeConfig[item.type] || typeConfig.other;
+                html += `
+                <div class="grid grid-cols-[56px_1fr] gap-x-6 mb-8 group">
+                    <div class="flex flex-col items-center pt-1 relative z-10">
+                        <div class="size-14 rounded-full bg-white dark:bg-background-dark border-4 border-slate-100 dark:border-slate-800 flex items-center justify-center text-${cfg.color} shadow-sm group-hover:border-${cfg.color}/30 transition-colors">
+                            <span class="material-symbols-outlined">${cfg.icon}</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col bg-card-light dark:bg-card-dark rounded-xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-sm font-bold text-${cfg.color} bg-${cfg.color}/10 px-2 py-0.5 rounded">${cfg.label}</span>
+                            <span class="text-sm text-text-muted-light dark:text-text-muted-dark font-medium">${formatDate(item.date)}</span>
+                        </div>
+                        <h3 class="text-lg font-bold mb-2">${item.summary}</h3>
+                        ${item.related_articles?.length ? `
+                        <div class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3 mt-1">
+                            <span class="text-xs font-medium text-slate-500">관련 기사 ${item.related_articles.length}건</span>
+                            <a href="${item.related_articles[0]?.url || '#'}" target="_blank" class="flex items-center gap-1 text-sm font-semibold text-primary hover:text-blue-600 transition-colors">
+                                원문 보기 <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+                            </a>
+                        </div>` : ''}
+                    </div>
+                </div>`;
+            });
+
+            // 끝 노드
+            html += `
+            <div class="grid grid-cols-[56px_1fr] gap-x-6">
+                <div class="flex flex-col items-center pt-1 relative z-10">
+                    <div class="size-4 rounded-full bg-slate-300 dark:bg-slate-600 mt-2"></div>
+                </div>
+                <div class="pt-1">
+                    <p class="text-sm text-text-muted-light dark:text-text-muted-dark italic">타임라인 끝</p>
+                </div>
+            </div>`;
+
+            container.innerHTML = html;
+        }
+
+        function renderClaims(claims) {
+            const container = document.getElementById('claims-container');
+            if (!container) return;
+
+            // 헤더 유지하고 클레임 카드만 교체
+            const header = container.querySelector('.flex.items-center.justify-between.pb-2');
+            let html = header ? header.outerHTML : '';
+
+            claims.forEach(claim => {
+                const cfg = verificationConfig[claim.verification_status] || verificationConfig.unknown;
+                const borderColor = cfg.color === 'green' ? 'green-500' : cfg.color === 'red' ? 'red-500' : 'slate-400';
+                const bgColor = cfg.color === 'green' ? 'green-600' : cfg.color === 'red' ? 'red-500' : 'slate-500';
+
+                html += `
+                <div class="bg-card-light dark:bg-card-dark rounded-xl border border-l-4 border-slate-200 dark:border-slate-700 border-l-${borderColor} p-5 shadow-sm hover:translate-y-[-2px] transition-transform">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-xs font-bold text-white bg-${bgColor} px-2 py-1 rounded uppercase tracking-wider">${cfg.label}</span>
+                        <button class="text-text-muted-light hover:text-primary"><span class="material-symbols-outlined text-[20px]">share</span></button>
+                    </div>
+                    <p class="font-bold text-lg mb-2">"${claim.content}"</p>
+                    ${claim.evidence?.notes ? `<p class="text-sm text-text-muted-light dark:text-text-muted-dark mb-4">${claim.evidence.notes}</p>` : ''}
+                    ${claim.evidence?.supporting_sources?.length ? `
+                    <a class="flex items-center gap-2 text-xs font-medium text-text-muted-light dark:text-text-muted-dark hover:text-primary hover:underline bg-slate-5, dark:bg-slate-800 p-2 rounded" href="${claim.evidence.supporting_sources[0].url}" target="_blank">
+                        <span class="material-symbols-outlined text-[16px]">link</span>
+                        증거자료: ${claim.evidence.supporting_sources[0].title || '출처 보기'}
+                    </a>` : ''}
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        async function loadEvent() {
+            if (!eventId) {
+                console.log('No event ID provided');
+                return null;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/events/${eventId}`);
+                if (!response.ok) {
+                    throw new Error('이벤트를 찾을 수 없습니다.');
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Failed to load event:', error);
+                alert(error.message);
+                return null;
+            }
+        }
+
+        function updateHeader(eventData) {
+            document.getElementById('event-title').textContent = eventData.title || '제목 없음';
+            document.getElementById('event-summary').textContent = eventData.summary || '';
+
+            // Update date
+            if (eventData.created_at) {
+                const date = new Date(eventData.created_at);
+                const formattedDate = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+                document.getElementById('updated-date').textContent = 'Created: ' + formattedDate;
+            }
+
+            // Update status card
+            const statusText = eventData.status === 'concluded' ? '종결됨' : '진행 중';
+            document.getElementById('stat-status').textContent = statusText;
+            document.getElementById('stat-status-sub').textContent = eventData.status === 'concluded' ? '분석 완료' : '추적 중';
+        }
+
+        function updateStats(claims, timeline) {
+            // Conclusion based on claims
+            const verifiedCount = claims.filter(c => c.verification_status === 'verified').length;
+            const disputedCount = claims.filter(c => c.verification_status === 'disputed').length;
+            document.getElementById('stat-conclusion').textContent = `${claims.length}개 주장`;
+            document.getElementById('stat-conclusion-sub').textContent = `확인: ${verifiedCount}, 논쟁: ${disputedCount}`;
+
+            // Evidence level
+            const evidenceLevel = claims.length > 5 ? '높음 (High)' : claims.length > 2 ? '중간 (Medium)' : '낮음 (Low)';
+            document.getElementById('stat-evidence').textContent = evidenceLevel;
+            document.getElementById('stat-evidence-sub').textContent = `타임라인 항목 ${timeline.length}개`;
+        }
+
+        // 페이지 로드 시 실행
+        const mode = urlParams.get('mode');
+        const encodedData = urlParams.get('data');
+        let currentEventData = null;
+
+        async function initPage() {
+            if (encodedData) {
+                // 1. URL 파라미터 데이터가 있는 경우 (공유된 링크)
+                try {
+                    // 공백을 +로 치환 (URL 디코딩 문제 해결)
+                    const safeEncoded = encodedData.replace(/ /g, '+');
+                    const decompressed = LZString.decompressFromEncodedURIComponent(safeEncoded);
+
+                    if (decompressed) {
+                        currentEventData = JSON.parse(decompressed);
+                    } else {
+                        console.error('Failed to decompress data');
+                        alert('잘못된 공유 링크입니다.');
+                        window.location.href = '/';
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Failed to parse encoded data:', e);
+                    alert('공유 데이터를 불러오는 데 실패했습니다.');
+                    window.location.href = '/';
+                    return;
+                }
+            } else if (mode === 'preview') {
+                // 2. 프리뷰 모드 (로컬/세션 스토리지)
+                const previewData = sessionStorage.getItem('previewData');
+                if (previewData) {
+                    try {
+                        currentEventData = JSON.parse(previewData);
+                    } catch (e) {
+                        console.error('Failed to parse preview data:', e);
+                        window.location.href = '/';
+                        return;
+                    }
+                } else {
+                    alert('미리보기 데이터가 없습니다.');
+                    window.location.href = '/';
+                    return;
+                }
+            } else if (eventId) {
+                // 3. 이벤트 ID 조회
+                currentEventData = await loadEvent();
+                if (!currentEventData) {
+                    window.location.href = '/';
+                    return;
+                }
+            } else {
+                // 데이터 없음
+                window.location.href = '/';
+                return;
+            }
+
+            // 데이터 렌더링
+            if (currentEventData) {
+                updateHeader(currentEventData.event);
+                updateStats(currentEventData.claims || [], currentEventData.timeline || []);
+                renderTimeline(currentEventData.timeline);
+                renderClaims(currentEventData.claims);
+            }
+        }
+
+        // 초기화 실행
+        initPage();
+
+        // 공유 버튼 이벤트 리스너
+        document.getElementById('share-btn')?.addEventListener('click', () => {
+            if (!currentEventData) {
+                alert('공유할 데이터가 없습니다.');
+                return;
+            }
+
+            try {
+                // 필요한 데이터만 추출하여 용량 줄이기
+                const shareData = {
+                    event: currentEventData.event,
+                    claims: currentEventData.claims,
+                    timeline: currentEventData.timeline
+                };
+
+                const jsonString = JSON.stringify(shareData);
+                const compressed = LZString.compressToEncodedURIComponent(jsonString);
+
+                // URL 길이 체크
+                if (compressed.length > 5000) {
+                    console.warn('Share URL is very long:', compressed.length);
+                }
+
+                const shareUrl = `${window.location.origin}/timeline?data=${compressed}`;
+
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    alert('공유 링크가 클립보드에 복사되었습니다! \n다른 사람에게 이 링크를 보내 분석 결과를 공유하세요.');
+                }).catch(err => {
+                    console.error('Failed to copy link:', err);
+                    prompt('링크를 복사해서 공유하세요:', shareUrl);
+                });
+            } catch (e) {
+                console.error('Failed to compress data for sharing:', e);
+                alert('데이터 공유 중 오류가 발생했습니다.');
+            }
+        });
+    </script>
+</body>
+
+</html>
